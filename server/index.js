@@ -8,7 +8,7 @@ const app = express();
 // Middleware
 app.use(cors(
     {
-        origin: ["https://your-frontend-domain.vercel.app"], // You will update this later after deploying frontend
+        origin: ["https://student-help-desk-api.vercel.app/ "], // You will update this later after deploying frontend
         methods: ["POST", "GET"],
         credentials: true
     }
