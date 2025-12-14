@@ -74,6 +74,26 @@ app.post('/createTicket', async (req, res) => {
     }
 });
 
+// DELETE /tickets/:id (Student functionality to delete a ticket)
+app.delete('/tickets/:id', async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        
+        // Use findByIdAndDelete to remove the ticket by its ID
+        const result = await Ticket.findByIdAndDelete(ticketId);
+
+        if (!result) {
+            return res.status(404).json({ msg: 'Ticket not found' });
+        }
+        
+        // Respond with success message
+        res.json({ msg: 'Ticket successfully deleted', ticketId: ticketId });
+    } catch (err) {
+        console.error("Deletion Error:", err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 // PUT /tickets/:id/resolve (Admin functionality)
 app.put('/tickets/:id/resolve', async (req, res) => {
     try {
