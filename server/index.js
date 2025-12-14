@@ -7,7 +7,7 @@ require('dotenv').config();
 
 // --- 1. NEW IMPORTS ---
 const authRoutes = require('./routes/auth'); // Import the Authentication routes
-const Ticket = require require('./models/Ticket'); // Import the Ticket Model
+const Ticket = require('./models/Ticket'); // Import the Ticket Model
 
 const app = express();
 
