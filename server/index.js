@@ -67,3 +67,32 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// server/index.js
+
+// ... (existing routes)
+
+// PUT /tickets/:id/resolve (Admin functionality)
+app.put('/tickets/:id/resolve', async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        
+        // Find the ticket and update its status
+        const ticket = await Ticket.findByIdAndUpdate(
+            ticketId,
+            { status: 'Resolved' },
+            { new: true } // Return the updated document
+        );
+
+        if (!ticket) {
+            return res.status(404).json({ msg: 'Ticket not found' });
+        }
+        
+        res.json(ticket);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// ... (Vercel export)
