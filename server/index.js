@@ -1,5 +1,4 @@
 // server/index.js
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -7,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth'); 
 const Ticket = require('./models/Ticket'); 
+const { protect, adminOnly } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -36,15 +36,16 @@ app.get('/', (req, res) => {
     res.json({ message: "Student Help Desk API Operational" });
 });
 
-// Auth Routes (Register/Login)
 app.use('/auth', authRoutes);
 
-// --- TICKET ROUTES ---
+// --- TICKET ROUTES (SECURED) ---
 
-// 1. GET all tickets
-app.get('/tickets', async (req, res) => {
+// 1. GET Tickets 
+// Logic: Admins see ALL, Students see only THEIR OWN
+app.get('/tickets', protect, async (req, res) => {
     try {
-        const tickets = await Ticket.find().sort({ date: -1 });
+        const query = req.user.role === 'admin' ? {} : { user: req.user.id };
+        const tickets = await Ticket.find(query).sort({ date: -1 });
         res.json(tickets);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -52,84 +53,44 @@ app.get('/tickets', async (req, res) => {
 });
 
 // 2. POST new ticket
-app.post('/createTicket', async (req, res) => {
+// Logic: Automatically attach the logged-in User's ID to the ticket
+app.post('/createTicket', protect, async (req, res) => {
     try {
-        const newTicket = await Ticket.create(req.body);
+        const newTicket = await Ticket.create({
+            ...req.body,
+            user: req.user.id // Critical: Stamping ownership
+        });
         res.json(newTicket);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// 3. DELETE a ticket (NEW ADDITION)
-app.delete('/tickets/:id', async (req, res) => {
+// 3. DELETE a ticket (Ownership Loophole Fixed)
+app.delete('/tickets/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
-
-        // Check if the ID is a valid MongoDB format to prevent crashes
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ msg: 'Invalid ID format' });
         }
 
-        const result = await Ticket.findByIdAndDelete(id);
+        const ticket = await Ticket.findById(id);
+        if (!ticket) return res.status(404).json({ msg: 'Ticket not found' });
 
-        if (!result) {
-            return res.status(404).json({ msg: 'Ticket not found' });
+        // --- OWNERSHIP CHECK ---
+        // If the user is NOT an admin AND the ticket doesn't belong to them, block it.
+        if (ticket.user.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ msg: 'Action forbidden: You can only delete your own tickets.' });
         }
 
+        await Ticket.findByIdAndDelete(id);
         res.json({ msg: 'Ticket deleted successfully', id });
     } catch (err) {
-        console.error("Deletion Error:", err.message);
         res.status(500).json({ error: 'Server error during deletion' });
     }
 });
 
-// 4. PUT resolve ticket
-app.put('/tickets/:id/resolve', async (req, res) => {
-    try {
-        const ticket = await Ticket.findByIdAndUpdate(
-            req.params.id,
-            { status: 'Resolved' },
-            { new: true }
-        );
-
-        if (!ticket) return res.status(404).json({ msg: 'Ticket not found' });
-        res.json(ticket);
-    } catch (err) {
-        res.status(500).send('Server error');
-    }
-});
-
-// server/index.js
-// ... other imports
-const { protect, adminOnly } = require('./middleware/authMiddleware'); // Import the new guards
-
-// --- PROTECTED TICKET ROUTES ---
-
-// 1. GET all tickets (Admin only)
-// Only Admins should see the full list of everyone's problems
-app.get('/tickets', protect, adminOnly, async (req, res) => {
-    try {
-        const tickets = await Ticket.find().sort({ date: -1 });
-        res.json(tickets);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 2. DELETE a ticket (Protected)
-// We use 'protect' so only logged-in users can delete. 
-app.delete('/tickets/:id', protect, async (req, res) => {
-    try {
-        const result = await Ticket.findByIdAndDelete(req.params.id);
-        res.json({ msg: 'Ticket deleted successfully' });
-    } catch (err) {
-        res.status(500).send('Server error');
-    }
-});
-
-// 3. RESOLVE a ticket (Admin only)
-// Only an Admin should be allowed to mark a ticket as "Resolved"
+// 4. PUT resolve ticket (Admin Only)
 app.put('/tickets/:id/resolve', protect, adminOnly, async (req, res) => {
     try {
         const ticket = await Ticket.findByIdAndUpdate(
@@ -137,6 +98,7 @@ app.put('/tickets/:id/resolve', protect, adminOnly, async (req, res) => {
             { status: 'Resolved' },
             { new: true }
         );
+        if (!ticket) return res.status(404).json({ msg: 'Ticket not found' });
         res.json(ticket);
     } catch (err) {
         res.status(500).send('Server error');
