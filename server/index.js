@@ -1,4 +1,3 @@
-// server/index.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,9 +15,11 @@ const FRONTEND_URL = 'https://student-help-desk-nine.vercel.app';
 // --- MIDDLEWARE ---
 app.use(express.json());
 
+// FIXED: Explicitly allowing Authorization headers to fix the 401 error
 const corsOptions = {
     origin: FRONTEND_URL, 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: ['Content-Type', 'Authorization'], // CRITICAL: Tell browser Auth header is allowed
     credentials: true,
     optionsSuccessStatus: 204 
 };
@@ -31,7 +32,6 @@ mongoose.connect(process.env.MONGO_URI)
 
 // --- ROUTES ---
 
-// Health Check
 app.get('/', (req, res) => {
     res.json({ message: "Student Help Desk API Operational" });
 });
@@ -40,10 +40,10 @@ app.use('/auth', authRoutes);
 
 // --- TICKET ROUTES (SECURED) ---
 
-// 1. GET Tickets 
-// Logic: Admins see ALL, Students see only THEIR OWN
+// 1. GET Tickets (Filtered by Role)
 app.get('/tickets', protect, async (req, res) => {
     try {
+        // req.user.id comes from decoded.user in your middleware
         const query = req.user.role === 'admin' ? {} : { user: req.user.id };
         const tickets = await Ticket.find(query).sort({ date: -1 });
         res.json(tickets);
@@ -52,34 +52,29 @@ app.get('/tickets', protect, async (req, res) => {
     }
 });
 
-// ... (Keep your imports and database connection as they are)
-
-// --- TICKET ROUTES (SECURED) ---
-
-// 2. POST new ticket - FIXED LOGIC
-// server/index.js
-
+// 2. POST new ticket (Attached to User)
 app.post('/createTicket', protect, async (req, res) => {
     try {
-        console.log("User from middleware:", req.user); // DEBUG: Check your console!
+        const { studentName, issue } = req.body;
+        
+        if (!studentName || !issue) {
+            return res.status(400).json({ msg: "Missing required fields" });
+        }
 
         const newTicket = await Ticket.create({
-            studentName: req.body.studentName,
-            issue: req.body.issue,
-            // Use req.user.id because your middleware sets req.user = decoded.user
-            user: req.user.id 
+            studentName,
+            issue,
+            user: req.user.id // Ownership stamping
         });
         
         res.json(newTicket);
     } catch (err) {
-        console.error("Final Submit Error:", err.message);
+        console.error("POST Ticket Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ... (Keep the rest of your routes)
-
-// 3. DELETE a ticket (Ownership Loophole Fixed)
+// 3. DELETE a ticket (Ownership Check)
 app.delete('/tickets/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
@@ -90,10 +85,9 @@ app.delete('/tickets/:id', protect, async (req, res) => {
         const ticket = await Ticket.findById(id);
         if (!ticket) return res.status(404).json({ msg: 'Ticket not found' });
 
-        // --- OWNERSHIP CHECK ---
-        // If the user is NOT an admin AND the ticket doesn't belong to them, block it.
+        // Security check: Only owner or admin
         if (ticket.user.toString() !== req.user.id && req.user.role !== 'admin') {
-            return res.status(403).json({ msg: 'Action forbidden: You can only delete your own tickets.' });
+            return res.status(403).json({ msg: 'Forbidden: You do not own this ticket' });
         }
 
         await Ticket.findByIdAndDelete(id);
@@ -120,7 +114,7 @@ app.put('/tickets/:id/resolve', protect, adminOnly, async (req, res) => {
 
 // --- VERCEL EXPORT ---
 if (require.main === module) {
-    const PORT = 5000;
+    const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`🚀 Server ready on port ${PORT}.`));
 }
 
