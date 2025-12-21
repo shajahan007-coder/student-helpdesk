@@ -1,71 +1,57 @@
 // client/src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { ShieldCheck, Home as HomeIcon, LogIn, UserPlus } from 'lucide-react';
 
-// Import all required components
 import Home from './components/Home';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import StudentDashboard from './components/StudentDashboard';
 import AdminDashboard from './components/AdminDashboard';
-import ProtectedRoute from './components/ProtectedRoute'; // <-- NEW IMPORT for security
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
-  // NOTE: In a future step, you would wrap this return block
-  // with an an <AuthProvider> component to manage user state globally.
-
   return (
     <Router>
-      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        
-        {/* === Header and Navigation === */}
-        <header style={{ borderBottom: '2px solid #007bff', paddingBottom: '10px', marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          
-          <h1 style={{ margin: 0, color: '#007bff' }}>🎓 Help Desk</h1>
-          
-          <nav>
-            <Link to="/" style={linkStyle}>Home</Link>
-            <Link to="/login" style={linkStyle}>Login</Link>
-            <Link to="/signup" style={linkStyle}>Signup</Link>
-            {/* These links will attempt to route the user, but ProtectedRoute will intercept */}
-            <Link to="/student/dashboard" style={linkStyle}>Student Area</Link>
-            <Link to="/admin/dashboard" style={linkStyle}>Admin Area</Link>
+      <div className="app-container">
+        {/* Navigation Bar */}
+        <header className="navbar">
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldCheck size={32} color="#2563eb" />
+              <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a' }}>HelpDesk</span>
+            </div>
+          </Link>
+
+          <nav className="nav-links">
+            <Link to="/" className="nav-item">Home</Link>
+            <Link to="/login" className="nav-item">Login</Link>
+            <Link to="/signup" className="nav-item">Signup</Link>
+            <Link to="/student/dashboard" className="nav-item" style={{ color: '#2563eb' }}>Dashboard</Link>
           </nav>
         </header>
 
-        {/* === Route Definitions === */}
-        <Routes>
-          {/* Public Routes: Accessible by anyone */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* === PROTECTED ROUTES GROUP === */}
-          
-          {/* 1. Student Route: Requires login AND role='student' */}
-          <Route element={<ProtectedRoute allowedRole="student" />}>
+        {/* Content Wrapper */}
+        <main style={{ padding: '40px 5%' }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            {/* Protected Student Route */}
+            <Route element={<ProtectedRoute allowedRole="student" />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
-          </Route>
-          
-          {/* 2. Admin Route: Requires login AND role='admin' */}
-          <Route element={<ProtectedRoute allowedRole="admin" />}>
+            </Route>
+
+            {/* Protected Admin Route */}
+            <Route element={<ProtectedRoute allowedRole="admin" />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          </Route>
-          
-          {/* Fallback Route */}
-          <Route path="*" element={<h1 style={{color: 'red'}}>404: Page Not Found</h1>} />
-        </Routes>
+            </Route>
+          </Routes>
+        </main>
       </div>
     </Router>
   );
 }
-
-// Simple style object for navigation links
-const linkStyle = { 
-    margin: '0 15px', 
-    textDecoration: 'none', 
-    color: '#333',
-    fontWeight: 'bold'
-};
 
 export default App;

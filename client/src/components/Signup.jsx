@@ -1,9 +1,9 @@
-// client/src/components/Signup.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { UserPlus, Mail, Lock, Shield } from 'lucide-react';
 
-// IMPORTANT: Change this to your deployed backend API URL
 const API_URL = "https://student-help-desk-api.vercel.app"; 
 
 function Signup() {
@@ -16,78 +16,49 @@ function Signup() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        
         try {
-            const response = await axios.post(`${API_URL}/auth/register`, {
-                email,
-                password,
-                role // Send role to backend for registration
-            });
-
-            // Store token and user data
+            const response = await axios.post(`${API_URL}/auth/register`, { email, password, role });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
 
-            alert(`Registration successful as ${response.data.user.role}! You are now logged in.`);
-            
-            // Redirect based on role
-            if (response.data.user.role === 'admin') {
-                navigate('/admin/dashboard');
-            } else {
-                navigate('/student/dashboard');
-            }
-
+            alert(`Welcome aboard! Registered as ${response.data.user.role}`);
+            navigate(response.data.user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard');
         } catch (err) {
-            console.error('Registration Error:', err.response ? err.response.data : err.message);
-            setError(err.response?.data?.msg || 'Registration failed. User may already exist.');
+            setError(err.response?.data?.msg || 'Registration failed.');
         }
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: '0 auto', padding: '20px', border: '1px solid #ddd', borderRadius: '5px' }}>
-            <h2>User Registration</h2>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            
-            <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Role:</label>
-                    <select 
-                        value={role} 
-                        onChange={(e) => setRole(e.target.value)}
-                        style={{ width: '100%', padding: '10px', marginTop: '5px' }}
-                    >
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}
+        >
+            <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <UserPlus size={40} color="#2563eb" />
+                    <h2>Create Account</h2>
+                    <p style={{ color: '#64748b' }}>Join the Help Desk community</p>
+                </div>
+
+                {error && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{error}</div>}
+
+                <form onSubmit={handleSubmit}>
+                    <label style={{ fontWeight: '600', fontSize: '14px' }}>I am a...</label>
+                    <select value={role} onChange={(e) => setRole(e.target.value)} className="nav-item" style={{ width: '100%', padding: '10px', margin: '8px 0 20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                         <option value="student">Student</option>
-                        <option value="admin">Admin (Use carefully!)</option>
+                        <option value="admin">Admin / Faculty</option>
                     </select>
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Email:</label>
-                    <input 
-                        type="email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        style={{ width: '100%', padding: '10px', marginTop: '5px' }}
-                    />
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Password:</label>
-                    <input 
-                        type="password" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        style={{ width: '100%', padding: '10px', marginTop: '5px' }}
-                    />
-                </div>
-                <button 
-                    type="submit"
-                    style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-                >
-                    Register
-                </button>
-            </form>
-        </div>
+
+                    <label style={{ fontWeight: '600', fontSize: '14px' }}>Email Address</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@university.edu" required />
+
+                    <label style={{ fontWeight: '600', fontSize: '14px' }}>Password</label>
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+
+                    <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>Register Now</button>
+                </form>
+            </div>
+        </motion.div>
     );
 }
 

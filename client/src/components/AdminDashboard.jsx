@@ -1,139 +1,99 @@
-// client/src/components/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, LogOut, ShieldCheck, Clock } from 'lucide-react';
 
-// IMPORTANT: Change this to your deployed backend API URL
 const API_URL = "https://student-help-desk-api.vercel.app";
 
 function AdminDashboard() {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [filterStatus, setFilterStatus] = useState('All'); // 'All', 'Open', 'Resolved'
-
-    // --- Fetching Logic ---
-    const fetchTickets = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // Fetch ALL tickets for the Admin
-            const response = await axios.get(`${API_URL}/tickets`);
-            setTickets(response.data);
-            setLoading(false);
-        } catch (err) {
-            console.error("Error fetching tickets for admin:", err);
-            setError("Failed to load tickets. Check CORS or API endpoint.");
-            setLoading(false);
-        }
-    };
+    const token = localStorage.getItem('token');
 
     useEffect(() => {
-        // NOTE: In a production app, we would include the JWT token in this request header
-        // to ensure only authenticated admins can access this data.
-        fetchTickets();
+        fetchAdminTickets();
     }, []);
 
-    // --- Ticket Resolution Logic ---
-    const handleResolve = async (ticketId) => {
-        if (!window.confirm("Are you sure you want to mark this ticket as RESOLVED?")) {
-            return;
-        }
-
+    const fetchAdminTickets = async () => {
         try {
-            // Call the new backend route
-            const response = await axios.put(`${API_URL}/tickets/${ticketId}/resolve`);
-            
-            // Update the local state to reflect the change immediately
-            setTickets(tickets.map(ticket => 
-                ticket._id === ticketId ? { ...ticket, status: 'Resolved' } : ticket
-            ));
-            
-            alert(`Ticket ${ticketId} resolved successfully.`);
+            const res = await axios.get(`${API_URL}/tickets`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setTickets(res.data);
+            setLoading(false);
         } catch (err) {
-            console.error("Resolution Error:", err);
-            alert("Failed to resolve ticket. Check API access.");
+            console.error("Admin fetch error", err);
+            setLoading(false);
         }
     };
 
-    // --- Filtering Logic ---
-    const filteredTickets = tickets.filter(ticket => {
-        if (filterStatus === 'All') return true;
-        return ticket.status === filterStatus;
-    });
+    // --- The Resolve Logic ---
+    const handleResolve = async (id) => {
+        try {
+            const res = await axios.put(`${API_URL}/tickets/${id}/resolve`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            // Update the UI state locally
+            setTickets(tickets.map(t => t._id === id ? res.data : t));
+        } catch (err) {
+            alert("Error resolving ticket. Are you an Admin?");
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
 
     return (
-        <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-            <h1>🛡️ Admin Dashboard: Manage Tickets</h1>
-            
-            {/* Filter Controls */}
-            <div style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
-                <label style={{ fontWeight: 'bold', marginRight: '10px' }}>Filter by Status:</label>
-                <select 
-                    value={filterStatus} 
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                >
-                    <option value="All">All Tickets ({tickets.length})</option>
-                    <option value="Open">Open Only</option>
-                    <option value="Resolved">Resolved Only</option>
-                </select>
-                <button 
-                    onClick={fetchTickets}
-                    style={{ marginLeft: '15px', padding: '8px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                    Refresh
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 20px" }}>
+            <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}
+            >
+                <h1><ShieldCheck size={30} color="#10b981" /> Admin Control Panel</h1>
+                <button onClick={handleLogout} className="btn-logout" style={{ background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' }}>
+                    <LogOut size={20} />
                 </button>
-            </div>
+            </motion.div>
 
-            {loading && <p>Loading all tickets...</p>}
-            {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-            
-            {!loading && filteredTickets.length === 0 && <p>No tickets match the current filter criteria.</p>}
+            <div style={{ display: 'grid', gap: '20px' }}>
+                <AnimatePresence>
+                    {tickets.map((ticket) => (
+                        <motion.div
+                            key={ticket._id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            style={{
+                                background: 'white', padding: '20px', borderRadius: '12px',
+                                border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between'
+                            }}
+                        >
+                            <div>
+                                <h4 style={{ margin: '0 0 5px 0' }}>{ticket.studentName}</h4>
+                                <p style={{ color: '#475569', margin: '0 0 10px 0' }}>{ticket.issue}</p>
+                                <span style={{ 
+                                    fontSize: '12px', padding: '4px 8px', borderRadius: '4px',
+                                    background: ticket.status === 'Open' ? '#fef3c7' : '#dcfce7',
+                                    color: ticket.status === 'Open' ? '#92400e' : '#166534'
+                                }}>
+                                    {ticket.status}
+                                </span>
+                            </div>
 
-            {/* Ticket List */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                {filteredTickets.map(ticket => (
-                    <div 
-                        key={ticket._id} 
-                        style={{ 
-                            border: '1px solid #ddd', 
-                            padding: '15px', 
-                            borderRadius: '8px',
-                            backgroundColor: ticket.status === 'Open' ? '#f8d7da' : '#d4edda', // Red for open, green for resolved
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                        }}
-                    >
-                        <h4 style={{ margin: '0 0 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            {ticket.studentName}
-                            <span 
-                                style={{ fontSize: '14px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '12px', color: '#fff', backgroundColor: ticket.status === 'Open' ? '#dc3545' : '#28a745' }}
-                            >
-                                {ticket.status}
-                            </span>
-                        </h4>
-                        <p style={{ margin: '0 0 10px 0', color: '#555' }}>Issue: {ticket.issue}</p>
-                        <small style={{ color: '#666' }}>ID: {ticket._id}</small><br/>
-                        <small style={{ color: '#666' }}>Submitted: {new Date(ticket.date).toLocaleDateString()}</small>
-
-                        {ticket.status === 'Open' && (
-                            <button 
-                                onClick={() => handleResolve(ticket._id)}
-                                style={{ 
-                                    marginTop: '15px', 
-                                    padding: '8px 12px', 
-                                    backgroundColor: '#ffc107', 
-                                    color: '#212529', 
-                                    border: 'none', 
-                                    borderRadius: '4px', 
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                Mark as Resolved
-                            </button>
-                        )}
-                    </div>
-                ))}
+                            {ticket.status === 'Open' && (
+                                <button 
+                                    onClick={() => handleResolve(ticket._id)}
+                                    style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                >
+                                    <CheckCircle size={18} /> Resolve
+                                </button>
+                            )}
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
             </div>
         </div>
     );
