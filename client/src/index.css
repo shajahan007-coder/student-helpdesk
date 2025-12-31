@@ -130,43 +130,72 @@ input:focus, textarea:focus {
   border-color: var(--primary);
 }
 
-/* --- RESPONSIVE DESIGN --- */
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 5%;
+  background: white;
+  position: relative;
+}
 
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #0f172a;
+}
+
+/* Desktop links */
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-item {
+  text-decoration: none;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+/* Hamburger */
+.menu-icon {
+  display: none;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+/* ---------- MOBILE VIEW ---------- */
 @media (max-width: 768px) {
-    /* 1. Adjust the main container padding */
-    .container {
-        width: 95%;
-        padding: 10px;
-        margin: 0 auto;
-    }
 
-    /* 2. Make Navigation Stack Vertically */
-    nav {
-        flex-direction: column;
-        padding: 1rem;
-    }
+  .menu-icon {
+    display: block;
+  }
 
-    /* 3. Adjust Ticket Grid/Cards to 1 Column */
-    .ticket-grid {
-        display: grid;
-        grid-template-columns: 1fr; /* Force one column on mobile */
-        gap: 15px;
-    }
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    background: white;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  }
 
-    /* 4. Scale down font sizes for mobile readability */
-    h1 {
-        font-size: 1.8rem;
-    }
+  .nav-links.active {
+    display: flex;
+  }
 
-    /* 5. Buttons should be easy to tap (larger hit area) */
-    button {
-        width: 100%; /* Make buttons full width on small screens */
-        padding: 12px;
-        font-size: 16px;
-    }
-
-    /* 6. Form inputs adjustment */
-    input, textarea {
-        font-size: 16px; /* Prevents iOS from zooming in on focus */
-    }
+  .nav-item {
+    padding: 10px 0;
+    font-size: 1.1rem;
+  }
 }
