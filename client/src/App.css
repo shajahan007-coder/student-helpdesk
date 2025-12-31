@@ -40,3 +40,44 @@
 .read-the-docs {
   color: #888;
 }
+
+/* --- RESPONSIVE DESIGN --- */
+
+@media (max-width: 768px) {
+    /* 1. Adjust the main container padding */
+    .container {
+        width: 95%;
+        padding: 10px;
+        margin: 0 auto;
+    }
+
+    /* 2. Make Navigation Stack Vertically */
+    nav {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    /* 3. Adjust Ticket Grid/Cards to 1 Column */
+    .ticket-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Force one column on mobile */
+        gap: 15px;
+    }
+
+    /* 4. Scale down font sizes for mobile readability */
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    /* 5. Buttons should be easy to tap (larger hit area) */
+    button {
+        width: 100%; /* Make buttons full width on small screens */
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    /* 6. Form inputs adjustment */
+    input, textarea {
+        font-size: 16px; /* Prevents iOS from zooming in on focus */
+    }
+}
